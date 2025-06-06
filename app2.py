@@ -17,8 +17,7 @@ if "mode" not in st.session_state:
     st.session_state.mode = None
 # -------- HEADER DESIGN --------
 col_logo, col_title = st.columns([3, 9])
-with col_logo:
-    st.image("Valeo_Logo.svg.png", width=100)
+
 
 with col_title:
     st.markdown("""
