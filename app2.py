@@ -10,6 +10,16 @@ col_logo, col_title = st.columns([3, 9])
 with col_logo:
     st.image("https://raw.githubusercontent.com/ELBITIachraf/nature-achat-app/main/Valeo_Logo.svg.png", width=100)
 
+
+# -------- PAGE CONFIG --------
+
+if "mode" not in st.session_state:
+    st.session_state.mode = None
+# -------- HEADER DESIGN --------
+col_logo, col_title = st.columns([3, 9])
+with col_logo:
+    st.image("Valeo_Logo.svg.png", width=100)
+
 with col_title:
     st.markdown("""
         <div style='display: flex; flex-direction: column; justify-content: center; height: 100%; margin-top: 20px;'>
@@ -20,78 +30,82 @@ with col_title:
 
 st.markdown("---")
 
-# -------- FONCTIONS MÉTIERS --------
-def determiner_nature_achat(row):
-    val1 = str(row.get("Nature achat commandes fermées", "") or "").strip()
-    val2 = str(row.get("Nature d'achat unique ou spécifique", "") or "").strip()
-    val3 = str(row.get("Nature d'achat du compte", "") or "").strip()
-    if val2.lower() not in ["", "vide", "nan"]:
-        return val2
-    elif val1.lower() not in ["", "vide", "nan"]:
-        return val1
-    else:
-        return val3
+if st.session_state.mode is None:
+    st.markdown("### Que souhaitez-vous faire ?")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🧠 Déterminer la Nature d'achat"):
+            st.session_state.mode = "nature"
+    with col2:
+        if st.button("🔐 Générer la Clé"):
+            st.session_state.mode = "cle"
 
-def generer_cle(row):
-    def safe(col_name):
-        return str(row.get(col_name, "") or "").strip()
-    nature_piece = safe("Nature pièce").lower()
-    tv = safe("TV")
-    zone_geo = safe("Zone géographique")
-    nature_achat = safe("Nature d'achat finale")
-    option_debit = safe("Option débit")
+# -------- MODE : NATURE D'ACHAT --------
+elif st.session_state.mode == "nature":
+    st.markdown("### 🧠 Détermination automatique de la nature d'achat")
+    uploaded_file = st.file_uploader("📂 Importer un fichier Excel (.xlsx)", type=["xlsx"], key="nature_file")
 
-    if nature_piece in ["paiement", "provision", "lettrage", "od"]:
-        return f"{safe('Nature pièce')}_{tv}"
-    elif nature_piece == "ndf":
-        return f"{safe('Nature pièce')}_{zone_geo}_{tv}"
-    else:
-        return f"{zone_geo}_{safe('Nature pièce')}_{nature_achat}_{tv}_{option_debit}"
-
-# -------- UPLOAD & TRAITEMENT --------
-st.subheader("📂 Importer un fichier Excel (.xlsx)")
-
-uploaded_file = st.file_uploader("Déposez ou sélectionnez un fichier", type=["xlsx"])
-
-if uploaded_file:
-    with st.spinner("📊 Chargement et analyse du fichier..."):
-        try:
+    if uploaded_file:
+        with st.spinner("Chargement du fichier..."):
             df = pd.read_excel(uploaded_file)
             df.columns = df.columns.str.strip()
-            st.success("✅ Fichier chargé avec succès.")
-            st.dataframe(df.head(30))
 
-            col1, col2 = st.columns(2)
+        df["Nature d'achat finale"] = df.apply(lambda row: str(row.get("Nature d'achat unique ou spécifique", "") or "").strip()
+            if str(row.get("Nature d'achat unique ou spécifique", "") or "").strip().lower() not in ["", "vide", "nan"]
+            else (str(row.get("Nature achat commandes fermées", "") or "").strip()
+            if str(row.get("Nature achat commandes fermées", "") or "").strip().lower() not in ["", "vide", "nan"]
+            else str(row.get("Nature d'achat du compte", "") or "").strip()), axis=1)
 
-            with col1:
-               if st.button("🧠 Déterminer la Nature d'achat finale"):
-                 with st.spinner("⏳ Détermination en cours..."):
-                   
-                   df["Nature d'achat finale"] = df.apply(determiner_nature_achat, axis=1)
-                 st.success("✅ Colonne 'Nature d'achat finale' ajoutée.")
+        st.success("✅ Colonne 'Nature d'achat finale' ajoutée.")
+        st.dataframe(df.head(10))
 
-            with col2:
-                if st.button("🔐 Générer la Clé"):
-                    if "Nature d'achat finale" not in df.columns:
-                        st.warning("⚠️ Veuillez d'abord calculer 'Nature d'achat finale'.")
-                    else:
-                        df["Clé"] = df.apply(generer_cle, axis=1)
-                        st.success("✅ Colonne 'Clé' générée avec succès.")
-                        st.dataframe(df[["Clé"]].head(5))
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Résultat")
+        output.seek(0)
 
-            st.markdown("---")
-            st.subheader("📥 Exporter les résultats")
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                df.to_excel(writer, index=False, sheet_name="Résultat")
-            output.seek(0)
+        st.download_button("📥 Télécharger le résultat", output, file_name="Valeo_Nature_Achat.xlsx",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-            st.download_button(
-                label="📁 Télécharger le fichier final (.xlsx)",
-                data=output,
-                file_name="Valeo_Traitement_Donnees.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+    st.button("⬅️ Retour", on_click=lambda: st.session_state.update({"mode": None}))
 
-        except Exception as e:
-            st.error(f"❌ Erreur : {e}")
+# -------- MODE : CLÉ --------
+elif st.session_state.mode == "cle":
+    st.markdown("### 🔐 Génération de la Clé d'achat")
+    uploaded_file = st.file_uploader("📂 Importer un fichier Excel (.xlsx)", type=["xlsx"], key="cle_file")
+
+    if uploaded_file:
+        with st.spinner("Chargement du fichier..."):
+            df = pd.read_excel(uploaded_file)
+            df.columns = df.columns.str.strip()
+
+        def safe(row, col):
+            return str(row.get(col, "") or "").strip()
+
+        def generer_cle(row):
+            nature_piece = safe(row, "Nature pièce").lower()
+            tv = safe(row, "TV")
+            zone_geo = safe(row, "Zone géographique")
+            nature_achat = safe(row, "Nature d'achat finale")
+            option_debit = safe(row, "Option débit")
+
+            if nature_piece in ["paiement", "provision", "lettrage", "od"]:
+                return f"{safe(row, 'Nature pièce')}_{tv}"
+            elif nature_piece == "ndf":
+                return f"{safe(row, 'Nature pièce')}_{zone_geo}_{tv}"
+            else:
+                return f"{zone_geo}_{safe(row, 'Nature pièce')}_{nature_achat}_{tv}_{option_debit}"
+
+        df["Clé"] = df.apply(generer_cle, axis=1)
+        st.success("✅ Colonne 'Clé' générée avec succès.")
+        st.dataframe(df.head(10))
+
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Résultat")
+        output.seek(0)
+
+        st.download_button("📥 Télécharger le résultat", output, file_name="Valeo_Cle_Achat.xlsx",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    st.button("⬅️ Retour", on_click=lambda: st.session_state.update({"mode": None}))
