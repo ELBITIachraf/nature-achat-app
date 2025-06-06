@@ -8,7 +8,7 @@ st.set_page_config(page_title="Valeo - Traitement Données Finance", page_icon="
 # -------- HEADER DESIGN --------
 col_logo, col_title = st.columns([3, 9])
 with col_logo:
-    st.image("https://raw.githubusercontent.com/TON-USER/nature-achat-app/main/Valeo_Logo.svg.png", width=100)
+    st.image("https://raw.githubusercontent.com/ELBITIachraf/nature-achat-app/main/Valeo_Logo.svg.png", width=100)
 
 with col_title:
     st.markdown("""
