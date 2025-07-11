@@ -93,7 +93,7 @@ elif st.session_state.mode == "cle":
             elif nature_piece == "ndf":
                 return f"{safe(row, 'Nature pièce')}_{zone_geo}_{tv}"
             else:
-                return f"{zone_geo}_{safe(row, 'Nature pièce')}_{nature_achat}_{tv}_{option_debit}"
+                return f"{zone_geo}{safe(row, 'Nature pièce')}{nature_achat}{tv}{option_debit}"
 
         df["Clé"] = df.apply(generer_cle, axis=1)
         st.success("✅ Colonne 'Clé' générée avec succès.")
