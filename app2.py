@@ -80,7 +80,7 @@ elif st.session_state.mode == "cle":
 
         def safe(row, col):
             return str(row.get(col, "") or "").strip()
-
+        
         def generer_cle(row):
             nature_piece = safe(row, "Nature pièce").lower()
             tv = safe(row, "TV")
@@ -89,9 +89,9 @@ elif st.session_state.mode == "cle":
             option_debit = safe(row, "Option débit")
 
             if nature_piece in ["paiement", "provision", "lettrage", "od"]:
-                return f"{safe(row, 'Nature pièce')}_{tv}"
+                return f"{safe(row, 'Nature pièce')}{tv}"
             elif nature_piece == "ndf":
-                return f"{safe(row, 'Nature pièce')}_{zone_geo}_{tv}"
+                return f"{safe(row, 'Nature pièce')}_{zone_geo}{tv}"
             else:
                 return f"{zone_geo}{safe(row, 'Nature pièce')}{nature_achat}{tv}{option_debit}"
 
