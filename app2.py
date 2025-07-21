@@ -10,15 +10,11 @@ col_logo, col_title = st.columns([3, 9])
 with col_logo:
     st.image("https://raw.githubusercontent.com/ELBITIachraf/nature-achat-app/main/Valeo_Logo.svg.png", width=100)
 
-
 # -------- PAGE CONFIG --------
-
 if "mode" not in st.session_state:
     st.session_state.mode = None
-# -------- HEADER DESIGN --------
-col_logo, col_title = st.columns([3, 9])
 
-
+# -------- HEADER DESIGN (titre) --------
 with col_title:
     st.markdown("""
         <div style='display: flex; flex-direction: column; justify-content: center; height: 100%; margin-top: 20px;'>
@@ -29,6 +25,7 @@ with col_title:
 
 st.markdown("---")
 
+# ---------- CHOIX DU MODE ----------
 if st.session_state.mode is None:
     st.markdown("### Que souhaitez-vous faire ?")
     col1, col2 = st.columns(2)
@@ -39,7 +36,7 @@ if st.session_state.mode is None:
         if st.button("🔐 Générer la Clé"):
             st.session_state.mode = "cle"
 
-# -------- MODE : NATURE D'ACHAT --------
+# ---------- MODE : NATURE D'ACHAT ----------
 elif st.session_state.mode == "nature":
     st.markdown("### 🧠 Détermination automatique de la nature d'achat")
     uploaded_file = st.file_uploader("📂 Importer un fichier Excel (.xlsx)", type=["xlsx"], key="nature_file")
@@ -49,11 +46,16 @@ elif st.session_state.mode == "nature":
             df = pd.read_excel(uploaded_file)
             df.columns = df.columns.str.strip()
 
-        df["Nature d'achat finale"] = df.apply(lambda row: str(row.get("Nature d'achat unique ou spécifique", "") or "").strip()
+        df["Nature d'achat finale"] = df.apply(
+            lambda row: str(row.get("Nature d'achat unique ou spécifique", "") or "").strip()
             if str(row.get("Nature d'achat unique ou spécifique", "") or "").strip().lower() not in ["", "vide", "nan"]
-            else (str(row.get("Nature achat commandes fermées", "") or "").strip()
-            if str(row.get("Nature achat commandes fermées", "") or "").strip().lower() not in ["", "vide", "nan"]
-            else str(row.get("Nature d'achat du compte", "") or "").strip()), axis=1)
+            else (
+                str(row.get("Nature achat commandes fermées", "") or "").strip()
+                if str(row.get("Nature achat commandes fermées", "") or "").strip().lower() not in ["", "vide", "nan"]
+                else str(row.get("Nature d'achat du compte", "") or "").strip()
+            ),
+            axis=1,
+        )
 
         st.success("✅ Colonne 'Nature d'achat finale' ajoutée.")
         st.dataframe(df.head(10))
@@ -63,12 +65,16 @@ elif st.session_state.mode == "nature":
             df.to_excel(writer, index=False, sheet_name="Résultat")
         output.seek(0)
 
-        st.download_button("📥 Télécharger le résultat", output, file_name="Valeo_Nature_Achat.xlsx",
-                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button(
+            "📥 Télécharger le résultat",
+            output,
+            file_name="Valeo_Nature_Achat.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
     st.button("⬅️ Retour", on_click=lambda: st.session_state.update({"mode": None}))
 
-# -------- MODE : CLÉ --------
+# ---------- MODE : CLÉ ----------
 elif st.session_state.mode == "cle":
     st.markdown("### 🔐 Génération de la Clé d'achat")
     uploaded_file = st.file_uploader("📂 Importer un fichier Excel (.xlsx)", type=["xlsx"], key="cle_file")
@@ -78,9 +84,15 @@ elif st.session_state.mode == "cle":
             df = pd.read_excel(uploaded_file)
             df.columns = df.columns.str.strip()
 
+        # --- MODIFICATION ICI : safe() gère NaN/vide ---
         def safe(row, col):
-            return str(row.get(col, "") or "").strip()
-        
+            """Retourne une chaîne propre sans NaN / 'nan' / 'vide'."""
+            val = row.get(col, "")
+            if pd.isna(val):
+                return ""
+            s = str(val).strip()
+            return "" if s.lower() in ["", "nan", "vide"] else s
+
         def generer_cle(row):
             nature_piece = safe(row, "Nature pièce").lower()
             tv = safe(row, "TV")
@@ -91,7 +103,7 @@ elif st.session_state.mode == "cle":
             if nature_piece in ["paiement", "provision", "lettrage", "od"]:
                 return f"{safe(row, 'Nature pièce')}{tv}"
             elif nature_piece == "ndf":
-                return f"{safe(row, 'Nature pièce')}_{zone_geo}{tv}"
+                return f"{safe(row, 'Nature pièce')}{zone_geo}{tv}"
             else:
                 return f"{zone_geo}{safe(row, 'Nature pièce')}{nature_achat}{tv}{option_debit}"
 
@@ -104,7 +116,11 @@ elif st.session_state.mode == "cle":
             df.to_excel(writer, index=False, sheet_name="Résultat")
         output.seek(0)
 
-        st.download_button("📥 Télécharger le résultat", output, file_name="Valeo_Cle_Achat.xlsx",
-                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button(
+            "📥 Télécharger le résultat",
+            output,
+            file_name="Valeo_Cle_Achat.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
     st.button("⬅️ Retour", on_click=lambda: st.session_state.update({"mode": None}))
