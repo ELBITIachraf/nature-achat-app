@@ -10,9 +10,11 @@ col_logo, col_title = st.columns([3, 9])
 with col_logo:
     st.image("https://raw.githubusercontent.com/ELBITIachraf/nature-achat-app/main/Valeo_Logo.svg.png", width=100)
 
+# -------- PAGE CONFIG --------
 if "mode" not in st.session_state:
     st.session_state.mode = None
 
+# -------- HEADER DESIGN (titre) --------
 with col_title:
     st.markdown("""
         <div style='display: flex; flex-direction: column; justify-content: center; height: 100%; margin-top: 20px;'>
@@ -82,15 +84,15 @@ elif st.session_state.mode == "cle":
             df = pd.read_excel(uploaded_file)
             df.columns = df.columns.str.strip()
 
-        # --- safe() inchangé : filtre NaN / 'vide' / 'nan' ---
+        # --- MODIFICATION ICI : safe() gère NaN/vide ---
         def safe(row, col):
+            """Retourne une chaîne propre sans NaN / 'nan' / 'vide'."""
             val = row.get(col, "")
             if pd.isna(val):
                 return ""
             s = str(val).strip()
             return "" if s.lower() in ["", "nan", "vide"] else s
 
-        # ---------- MODIFICATION ICI ----------
         def generer_cle(row):
             nature_piece = safe(row, "Nature pièce").lower()
             tv = safe(row, "TV")
@@ -99,16 +101,12 @@ elif st.session_state.mode == "cle":
             option_debit = safe(row, "Option débit")
 
             if nature_piece in ["paiement", "provision", "lettrage", "od"]:
-                cle = f"{safe(row, 'Nature pièce')}{tv}"               # plus d'underscore
+                return f"{safe(row, 'Nature pièce')}{tv}"
             elif nature_piece == "ndf":
-                cle = f"{safe(row, 'Nature pièce')}{zone_geo}{tv}"     # plus d'underscore
+                return f"{safe(row, 'Nature pièce')}{zone_geo}{tv}"
             else:
-                cle = f"{zone_geo}{safe(row, 'Nature pièce')}{nature_achat}{tv}{option_debit}"
+                return f"{zone_geo}{safe(row, 'Nature pièce')}{nature_achat}{tv}{option_debit}"
 
-            # Retire toute trace de tirets ou underscores restants
-            return cle.replace("-", "").replace("_", "")
-
-        # ---------------------------------------
         df["Clé"] = df.apply(generer_cle, axis=1)
         st.success("✅ Colonne 'Clé' générée avec succès.")
         st.dataframe(df.head(10))
