@@ -87,7 +87,7 @@ elif st.session_state.mode == "cle":
             if nature_piece in ["paiement", "provision", "lettrage", "od"]:
                 return f"{safe(row, 'Nature pièce')}{tv}"
             elif nature_piece == "ndf":
-                return f"{safe(row, 'Nature pièce')}_{zone_geo}{tv}"
+                return f"{safe(row, 'Nature pièce')}{zone_geo}{tv}"
             else:
                 return f"{zone_geo}{safe(row, 'Nature pièce')}{nature_achat}{tv}{option_debit}"
 
